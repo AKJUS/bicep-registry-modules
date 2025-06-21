@@ -8,6 +8,7 @@ This module deploys an Azure Stack HCI Cluster on the provided Arc Machines.
 - [Usage examples](#Usage-examples)
 - [Parameters](#Parameters)
 - [Outputs](#Outputs)
+- [Notes](#Notes)
 - [Data Collection](#Data-Collection)
 
 ## Resource Types
@@ -16,8 +17,9 @@ This module deploys an Azure Stack HCI Cluster on the provided Arc Machines.
 | :-- | :-- |
 | `Microsoft.Authorization/roleAssignments` | [2022-04-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.Authorization/2022-04-01/roleAssignments) |
 | `Microsoft.AzureStackHCI/clusters` | [2024-04-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.AzureStackHCI/clusters) |
-| `Microsoft.AzureStackHCI/clusters/deploymentSettings` | [2024-04-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.AzureStackHCI/clusters/deploymentSettings) |
 | `Microsoft.KeyVault/vaults/secrets` | [2023-07-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.KeyVault/2023-07-01/vaults/secrets) |
+| `Microsoft.ManagedIdentity/userAssignedIdentities` | [2023-01-31](https://learn.microsoft.com/en-us/azure/templates/Microsoft.ManagedIdentity/2023-01-31/userAssignedIdentities) |
+| `Microsoft.Resources/deploymentScripts` | [2023-08-01](https://learn.microsoft.com/en-us/azure/templates/Microsoft.Resources/2023-08-01/deploymentScripts) |
 
 ## Usage examples
 
@@ -48,54 +50,28 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
       clusterNodeNames: '<clusterNodeNames>'
       clusterWitnessStorageAccountName: '<clusterWitnessStorageAccountName>'
       customLocationName: 'ashcmin-location'
-      defaultGateway: '172.20.0.1'
+      defaultGateway: '192.168.1.1'
       deploymentPrefix: '<deploymentPrefix>'
       dnsServers: [
-        '172.20.0.1'
+        '192.168.1.254'
       ]
-      domainFqdn: 'hci.local'
+      domainFqdn: 'jumpstart.local'
       domainOUPath: '<domainOUPath>'
       enableStorageAutoIp: true
-      endingIPAddress: '172.20.0.7'
+      endingIPAddress: '192.168.1.65'
       keyVaultName: '<keyVaultName>'
       networkIntents: [
         {
           adapter: [
-            'mgmt'
+            'FABRIC'
+            'FABRIC2'
           ]
           adapterPropertyOverrides: {
             jumboPacket: '9014'
             networkDirect: 'Disabled'
             networkDirectTechnology: 'iWARP'
           }
-          name: 'management'
-          overrideAdapterProperty: true
-          overrideQosPolicy: false
-          overrideVirtualSwitchConfiguration: false
-          qosPolicyOverrides: {
-            bandwidthPercentageSMB: '50'
-            priorityValue8021ActionCluster: '7'
-            priorityValue8021ActionSMB: '3'
-          }
-          trafficType: [
-            'Management'
-          ]
-          virtualSwitchConfigurationOverrides: {
-            enableIov: 'true'
-            loadBalancingAlgorithm: 'Dynamic'
-          }
-        }
-        {
-          adapter: [
-            'comp0'
-            'comp1'
-          ]
-          adapterPropertyOverrides: {
-            jumboPacket: '9014'
-            networkDirect: 'Disabled'
-            networkDirectTechnology: 'iWARP'
-          }
-          name: 'compute'
+          name: 'ManagementCompute'
           overrideAdapterProperty: true
           overrideQosPolicy: false
           overrideVirtualSwitchConfiguration: false
@@ -106,6 +82,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
           }
           trafficType: [
             'Compute'
+            'Management'
           ]
           virtualSwitchConfigurationOverrides: {
             enableIov: 'true'
@@ -114,15 +91,15 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
         }
         {
           adapter: [
-            'smb0'
-            'smb1'
+            'StorageA'
+            'StorageB'
           ]
           adapterPropertyOverrides: {
             jumboPacket: '9014'
             networkDirect: 'Disabled'
             networkDirectTechnology: 'iWARP'
           }
-          name: 'storage'
+          name: 'Storage'
           overrideAdapterProperty: true
           overrideQosPolicy: true
           overrideVirtualSwitchConfiguration: false
@@ -140,30 +117,29 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
           }
         }
       ]
-      startingIPAddress: '172.20.0.2'
+      startingIPAddress: '192.168.1.55'
       storageConnectivitySwitchless: false
       storageNetworks: [
         {
-          adapterName: 'smb0'
-          name: 'StorageNetwork0'
+          adapterName: 'StorageA'
+          name: 'Storage1Network'
           vlan: '711'
         }
         {
-          adapterName: 'smb1'
-          name: 'StorageNetwork1'
+          adapterName: 'StorageB'
+          name: 'Storage2Network'
           vlan: '712'
         }
       ]
       subnetMask: '255.255.255.0'
     }
+    hciResourceProviderObjectId: '<hciResourceProviderObjectId>'
     name: '<name>'
     // Non-required parameters
     deploymentUser: 'deployUser'
     deploymentUserPassword: '<deploymentUserPassword>'
     localAdminPassword: '<localAdminPassword>'
-    localAdminUser: 'admin-hci'
-    servicePrincipalId: '<servicePrincipalId>'
-    servicePrincipalSecret: '<servicePrincipalSecret>'
+    localAdminUser: 'Administrator'
   }
 }
 ```
@@ -186,27 +162,28 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
         "clusterNodeNames": "<clusterNodeNames>",
         "clusterWitnessStorageAccountName": "<clusterWitnessStorageAccountName>",
         "customLocationName": "ashcmin-location",
-        "defaultGateway": "172.20.0.1",
+        "defaultGateway": "192.168.1.1",
         "deploymentPrefix": "<deploymentPrefix>",
         "dnsServers": [
-          "172.20.0.1"
+          "192.168.1.254"
         ],
-        "domainFqdn": "hci.local",
+        "domainFqdn": "jumpstart.local",
         "domainOUPath": "<domainOUPath>",
         "enableStorageAutoIp": true,
-        "endingIPAddress": "172.20.0.7",
+        "endingIPAddress": "192.168.1.65",
         "keyVaultName": "<keyVaultName>",
         "networkIntents": [
           {
             "adapter": [
-              "mgmt"
+              "FABRIC",
+              "FABRIC2"
             ],
             "adapterPropertyOverrides": {
               "jumboPacket": "9014",
               "networkDirect": "Disabled",
               "networkDirectTechnology": "iWARP"
             },
-            "name": "management",
+            "name": "ManagementCompute",
             "overrideAdapterProperty": true,
             "overrideQosPolicy": false,
             "overrideVirtualSwitchConfiguration": false,
@@ -216,6 +193,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
               "priorityValue8021ActionSMB": "3"
             },
             "trafficType": [
+              "Compute",
               "Management"
             ],
             "virtualSwitchConfigurationOverrides": {
@@ -225,42 +203,15 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
           },
           {
             "adapter": [
-              "comp0",
-              "comp1"
+              "StorageA",
+              "StorageB"
             ],
             "adapterPropertyOverrides": {
               "jumboPacket": "9014",
               "networkDirect": "Disabled",
               "networkDirectTechnology": "iWARP"
             },
-            "name": "compute",
-            "overrideAdapterProperty": true,
-            "overrideQosPolicy": false,
-            "overrideVirtualSwitchConfiguration": false,
-            "qosPolicyOverrides": {
-              "bandwidthPercentageSMB": "50",
-              "priorityValue8021ActionCluster": "7",
-              "priorityValue8021ActionSMB": "3"
-            },
-            "trafficType": [
-              "Compute"
-            ],
-            "virtualSwitchConfigurationOverrides": {
-              "enableIov": "true",
-              "loadBalancingAlgorithm": "Dynamic"
-            }
-          },
-          {
-            "adapter": [
-              "smb0",
-              "smb1"
-            ],
-            "adapterPropertyOverrides": {
-              "jumboPacket": "9014",
-              "networkDirect": "Disabled",
-              "networkDirectTechnology": "iWARP"
-            },
-            "name": "storage",
+            "name": "Storage",
             "overrideAdapterProperty": true,
             "overrideQosPolicy": true,
             "overrideVirtualSwitchConfiguration": false,
@@ -278,22 +229,25 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
             }
           }
         ],
-        "startingIPAddress": "172.20.0.2",
+        "startingIPAddress": "192.168.1.55",
         "storageConnectivitySwitchless": false,
         "storageNetworks": [
           {
-            "adapterName": "smb0",
-            "name": "StorageNetwork0",
+            "adapterName": "StorageA",
+            "name": "Storage1Network",
             "vlan": "711"
           },
           {
-            "adapterName": "smb1",
-            "name": "StorageNetwork1",
+            "adapterName": "StorageB",
+            "name": "Storage2Network",
             "vlan": "712"
           }
         ],
         "subnetMask": "255.255.255.0"
       }
+    },
+    "hciResourceProviderObjectId": {
+      "value": "<hciResourceProviderObjectId>"
     },
     "name": {
       "value": "<name>"
@@ -309,13 +263,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
       "value": "<localAdminPassword>"
     },
     "localAdminUser": {
-      "value": "admin-hci"
-    },
-    "servicePrincipalId": {
-      "value": "<servicePrincipalId>"
-    },
-    "servicePrincipalSecret": {
-      "value": "<servicePrincipalSecret>"
+      "value": "Administrator"
     }
   }
 }
@@ -336,54 +284,28 @@ param deploymentSettings = {
   clusterNodeNames: '<clusterNodeNames>'
   clusterWitnessStorageAccountName: '<clusterWitnessStorageAccountName>'
   customLocationName: 'ashcmin-location'
-  defaultGateway: '172.20.0.1'
+  defaultGateway: '192.168.1.1'
   deploymentPrefix: '<deploymentPrefix>'
   dnsServers: [
-    '172.20.0.1'
+    '192.168.1.254'
   ]
-  domainFqdn: 'hci.local'
+  domainFqdn: 'jumpstart.local'
   domainOUPath: '<domainOUPath>'
   enableStorageAutoIp: true
-  endingIPAddress: '172.20.0.7'
+  endingIPAddress: '192.168.1.65'
   keyVaultName: '<keyVaultName>'
   networkIntents: [
     {
       adapter: [
-        'mgmt'
+        'FABRIC'
+        'FABRIC2'
       ]
       adapterPropertyOverrides: {
         jumboPacket: '9014'
         networkDirect: 'Disabled'
         networkDirectTechnology: 'iWARP'
       }
-      name: 'management'
-      overrideAdapterProperty: true
-      overrideQosPolicy: false
-      overrideVirtualSwitchConfiguration: false
-      qosPolicyOverrides: {
-        bandwidthPercentageSMB: '50'
-        priorityValue8021ActionCluster: '7'
-        priorityValue8021ActionSMB: '3'
-      }
-      trafficType: [
-        'Management'
-      ]
-      virtualSwitchConfigurationOverrides: {
-        enableIov: 'true'
-        loadBalancingAlgorithm: 'Dynamic'
-      }
-    }
-    {
-      adapter: [
-        'comp0'
-        'comp1'
-      ]
-      adapterPropertyOverrides: {
-        jumboPacket: '9014'
-        networkDirect: 'Disabled'
-        networkDirectTechnology: 'iWARP'
-      }
-      name: 'compute'
+      name: 'ManagementCompute'
       overrideAdapterProperty: true
       overrideQosPolicy: false
       overrideVirtualSwitchConfiguration: false
@@ -394,6 +316,7 @@ param deploymentSettings = {
       }
       trafficType: [
         'Compute'
+        'Management'
       ]
       virtualSwitchConfigurationOverrides: {
         enableIov: 'true'
@@ -402,15 +325,15 @@ param deploymentSettings = {
     }
     {
       adapter: [
-        'smb0'
-        'smb1'
+        'StorageA'
+        'StorageB'
       ]
       adapterPropertyOverrides: {
         jumboPacket: '9014'
         networkDirect: 'Disabled'
         networkDirectTechnology: 'iWARP'
       }
-      name: 'storage'
+      name: 'Storage'
       overrideAdapterProperty: true
       overrideQosPolicy: true
       overrideVirtualSwitchConfiguration: false
@@ -428,30 +351,29 @@ param deploymentSettings = {
       }
     }
   ]
-  startingIPAddress: '172.20.0.2'
+  startingIPAddress: '192.168.1.55'
   storageConnectivitySwitchless: false
   storageNetworks: [
     {
-      adapterName: 'smb0'
-      name: 'StorageNetwork0'
+      adapterName: 'StorageA'
+      name: 'Storage1Network'
       vlan: '711'
     }
     {
-      adapterName: 'smb1'
-      name: 'StorageNetwork1'
+      adapterName: 'StorageB'
+      name: 'Storage2Network'
       vlan: '712'
     }
   ]
   subnetMask: '255.255.255.0'
 }
+param hciResourceProviderObjectId = '<hciResourceProviderObjectId>'
 param name = '<name>'
 // Non-required parameters
 param deploymentUser = 'deployUser'
 param deploymentUserPassword = '<deploymentUserPassword>'
 param localAdminPassword = '<localAdminPassword>'
-param localAdminUser = 'admin-hci'
-param servicePrincipalId = '<servicePrincipalId>'
-param servicePrincipalSecret = '<servicePrincipalSecret>'
+param localAdminUser = 'Administrator'
 ```
 
 </details>
@@ -477,55 +399,29 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
       clusterNodeNames: '<clusterNodeNames>'
       clusterWitnessStorageAccountName: '<clusterWitnessStorageAccountName>'
       customLocationName: 'ashcwaf-location'
-      defaultGateway: '172.20.0.1'
+      defaultGateway: '192.168.1.1'
       deploymentPrefix: '<deploymentPrefix>'
       dnsServers: [
-        '172.20.0.1'
+        '192.168.1.254'
       ]
-      domainFqdn: 'hci.local'
+      domainFqdn: 'jumpstart.local'
       domainOUPath: '<domainOUPath>'
       driftControlEnforced: true
       enableStorageAutoIp: true
-      endingIPAddress: '172.20.0.7'
+      endingIPAddress: '192.168.1.65'
       keyVaultName: '<keyVaultName>'
       networkIntents: [
         {
           adapter: [
-            'mgmt'
+            'FABRIC'
+            'FABRIC2'
           ]
           adapterPropertyOverrides: {
             jumboPacket: '9014'
             networkDirect: 'Disabled'
             networkDirectTechnology: 'iWARP'
           }
-          name: 'management'
-          overrideAdapterProperty: true
-          overrideQosPolicy: false
-          overrideVirtualSwitchConfiguration: false
-          qosPolicyOverrides: {
-            bandwidthPercentageSMB: '50'
-            priorityValue8021ActionCluster: '7'
-            priorityValue8021ActionSMB: '3'
-          }
-          trafficType: [
-            'Management'
-          ]
-          virtualSwitchConfigurationOverrides: {
-            enableIov: 'true'
-            loadBalancingAlgorithm: 'Dynamic'
-          }
-        }
-        {
-          adapter: [
-            'comp0'
-            'comp1'
-          ]
-          adapterPropertyOverrides: {
-            jumboPacket: '9014'
-            networkDirect: 'Disabled'
-            networkDirectTechnology: 'iWARP'
-          }
-          name: 'compute'
+          name: 'ManagementCompute'
           overrideAdapterProperty: true
           overrideQosPolicy: false
           overrideVirtualSwitchConfiguration: false
@@ -536,6 +432,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
           }
           trafficType: [
             'Compute'
+            'Management'
           ]
           virtualSwitchConfigurationOverrides: {
             enableIov: 'true'
@@ -544,15 +441,15 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
         }
         {
           adapter: [
-            'smb0'
-            'smb1'
+            'StorageA'
+            'StorageB'
           ]
           adapterPropertyOverrides: {
             jumboPacket: '9014'
             networkDirect: 'Disabled'
             networkDirectTechnology: 'iWARP'
           }
-          name: 'storage'
+          name: 'Storage'
           overrideAdapterProperty: true
           overrideQosPolicy: true
           overrideVirtualSwitchConfiguration: false
@@ -573,28 +470,29 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
       sideChannelMitigationEnforced: true
       smbClusterEncryption: true
       smbSigningEnforced: true
-      startingIPAddress: '172.20.0.2'
+      startingIPAddress: '192.168.1.55'
       storageConnectivitySwitchless: false
       storageNetworks: [
         {
-          adapterName: 'smb0'
-          name: 'StorageNetwork0'
+          adapterName: 'StorageA'
+          name: 'Storage1Network'
           vlan: '711'
         }
         {
-          adapterName: 'smb1'
-          name: 'StorageNetwork1'
+          adapterName: 'StorageB'
+          name: 'Storage2Network'
           vlan: '712'
         }
       ]
       subnetMask: '255.255.255.0'
     }
+    hciResourceProviderObjectId: '<hciResourceProviderObjectId>'
     name: '<name>'
     // Non-required parameters
     deploymentUser: 'deployUser'
     deploymentUserPassword: '<deploymentUserPassword>'
     localAdminPassword: '<localAdminPassword>'
-    localAdminUser: 'admin-hci'
+    localAdminUser: 'Administrator'
     servicePrincipalId: '<servicePrincipalId>'
     servicePrincipalSecret: '<servicePrincipalSecret>'
     tags: {
@@ -626,28 +524,29 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
         "clusterNodeNames": "<clusterNodeNames>",
         "clusterWitnessStorageAccountName": "<clusterWitnessStorageAccountName>",
         "customLocationName": "ashcwaf-location",
-        "defaultGateway": "172.20.0.1",
+        "defaultGateway": "192.168.1.1",
         "deploymentPrefix": "<deploymentPrefix>",
         "dnsServers": [
-          "172.20.0.1"
+          "192.168.1.254"
         ],
-        "domainFqdn": "hci.local",
+        "domainFqdn": "jumpstart.local",
         "domainOUPath": "<domainOUPath>",
         "driftControlEnforced": true,
         "enableStorageAutoIp": true,
-        "endingIPAddress": "172.20.0.7",
+        "endingIPAddress": "192.168.1.65",
         "keyVaultName": "<keyVaultName>",
         "networkIntents": [
           {
             "adapter": [
-              "mgmt"
+              "FABRIC",
+              "FABRIC2"
             ],
             "adapterPropertyOverrides": {
               "jumboPacket": "9014",
               "networkDirect": "Disabled",
               "networkDirectTechnology": "iWARP"
             },
-            "name": "management",
+            "name": "ManagementCompute",
             "overrideAdapterProperty": true,
             "overrideQosPolicy": false,
             "overrideVirtualSwitchConfiguration": false,
@@ -657,6 +556,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
               "priorityValue8021ActionSMB": "3"
             },
             "trafficType": [
+              "Compute",
               "Management"
             ],
             "virtualSwitchConfigurationOverrides": {
@@ -666,42 +566,15 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
           },
           {
             "adapter": [
-              "comp0",
-              "comp1"
+              "StorageA",
+              "StorageB"
             ],
             "adapterPropertyOverrides": {
               "jumboPacket": "9014",
               "networkDirect": "Disabled",
               "networkDirectTechnology": "iWARP"
             },
-            "name": "compute",
-            "overrideAdapterProperty": true,
-            "overrideQosPolicy": false,
-            "overrideVirtualSwitchConfiguration": false,
-            "qosPolicyOverrides": {
-              "bandwidthPercentageSMB": "50",
-              "priorityValue8021ActionCluster": "7",
-              "priorityValue8021ActionSMB": "3"
-            },
-            "trafficType": [
-              "Compute"
-            ],
-            "virtualSwitchConfigurationOverrides": {
-              "enableIov": "true",
-              "loadBalancingAlgorithm": "Dynamic"
-            }
-          },
-          {
-            "adapter": [
-              "smb0",
-              "smb1"
-            ],
-            "adapterPropertyOverrides": {
-              "jumboPacket": "9014",
-              "networkDirect": "Disabled",
-              "networkDirectTechnology": "iWARP"
-            },
-            "name": "storage",
+            "name": "Storage",
             "overrideAdapterProperty": true,
             "overrideQosPolicy": true,
             "overrideVirtualSwitchConfiguration": false,
@@ -722,22 +595,25 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
         "sideChannelMitigationEnforced": true,
         "smbClusterEncryption": true,
         "smbSigningEnforced": true,
-        "startingIPAddress": "172.20.0.2",
+        "startingIPAddress": "192.168.1.55",
         "storageConnectivitySwitchless": false,
         "storageNetworks": [
           {
-            "adapterName": "smb0",
-            "name": "StorageNetwork0",
+            "adapterName": "StorageA",
+            "name": "Storage1Network",
             "vlan": "711"
           },
           {
-            "adapterName": "smb1",
-            "name": "StorageNetwork1",
+            "adapterName": "StorageB",
+            "name": "Storage2Network",
             "vlan": "712"
           }
         ],
         "subnetMask": "255.255.255.0"
       }
+    },
+    "hciResourceProviderObjectId": {
+      "value": "<hciResourceProviderObjectId>"
     },
     "name": {
       "value": "<name>"
@@ -753,7 +629,7 @@ module cluster 'br/public:avm/res/azure-stack-hci/cluster:<version>' = {
       "value": "<localAdminPassword>"
     },
     "localAdminUser": {
-      "value": "admin-hci"
+      "value": "Administrator"
     },
     "servicePrincipalId": {
       "value": "<servicePrincipalId>"
@@ -789,55 +665,29 @@ param deploymentSettings = {
   clusterNodeNames: '<clusterNodeNames>'
   clusterWitnessStorageAccountName: '<clusterWitnessStorageAccountName>'
   customLocationName: 'ashcwaf-location'
-  defaultGateway: '172.20.0.1'
+  defaultGateway: '192.168.1.1'
   deploymentPrefix: '<deploymentPrefix>'
   dnsServers: [
-    '172.20.0.1'
+    '192.168.1.254'
   ]
-  domainFqdn: 'hci.local'
+  domainFqdn: 'jumpstart.local'
   domainOUPath: '<domainOUPath>'
   driftControlEnforced: true
   enableStorageAutoIp: true
-  endingIPAddress: '172.20.0.7'
+  endingIPAddress: '192.168.1.65'
   keyVaultName: '<keyVaultName>'
   networkIntents: [
     {
       adapter: [
-        'mgmt'
+        'FABRIC'
+        'FABRIC2'
       ]
       adapterPropertyOverrides: {
         jumboPacket: '9014'
         networkDirect: 'Disabled'
         networkDirectTechnology: 'iWARP'
       }
-      name: 'management'
-      overrideAdapterProperty: true
-      overrideQosPolicy: false
-      overrideVirtualSwitchConfiguration: false
-      qosPolicyOverrides: {
-        bandwidthPercentageSMB: '50'
-        priorityValue8021ActionCluster: '7'
-        priorityValue8021ActionSMB: '3'
-      }
-      trafficType: [
-        'Management'
-      ]
-      virtualSwitchConfigurationOverrides: {
-        enableIov: 'true'
-        loadBalancingAlgorithm: 'Dynamic'
-      }
-    }
-    {
-      adapter: [
-        'comp0'
-        'comp1'
-      ]
-      adapterPropertyOverrides: {
-        jumboPacket: '9014'
-        networkDirect: 'Disabled'
-        networkDirectTechnology: 'iWARP'
-      }
-      name: 'compute'
+      name: 'ManagementCompute'
       overrideAdapterProperty: true
       overrideQosPolicy: false
       overrideVirtualSwitchConfiguration: false
@@ -848,6 +698,7 @@ param deploymentSettings = {
       }
       trafficType: [
         'Compute'
+        'Management'
       ]
       virtualSwitchConfigurationOverrides: {
         enableIov: 'true'
@@ -856,15 +707,15 @@ param deploymentSettings = {
     }
     {
       adapter: [
-        'smb0'
-        'smb1'
+        'StorageA'
+        'StorageB'
       ]
       adapterPropertyOverrides: {
         jumboPacket: '9014'
         networkDirect: 'Disabled'
         networkDirectTechnology: 'iWARP'
       }
-      name: 'storage'
+      name: 'Storage'
       overrideAdapterProperty: true
       overrideQosPolicy: true
       overrideVirtualSwitchConfiguration: false
@@ -885,28 +736,29 @@ param deploymentSettings = {
   sideChannelMitigationEnforced: true
   smbClusterEncryption: true
   smbSigningEnforced: true
-  startingIPAddress: '172.20.0.2'
+  startingIPAddress: '192.168.1.55'
   storageConnectivitySwitchless: false
   storageNetworks: [
     {
-      adapterName: 'smb0'
-      name: 'StorageNetwork0'
+      adapterName: 'StorageA'
+      name: 'Storage1Network'
       vlan: '711'
     }
     {
-      adapterName: 'smb1'
-      name: 'StorageNetwork1'
+      adapterName: 'StorageB'
+      name: 'Storage2Network'
       vlan: '712'
     }
   ]
   subnetMask: '255.255.255.0'
 }
+param hciResourceProviderObjectId = '<hciResourceProviderObjectId>'
 param name = '<name>'
 // Non-required parameters
 param deploymentUser = 'deployUser'
 param deploymentUserPassword = '<deploymentUserPassword>'
 param localAdminPassword = '<localAdminPassword>'
-param localAdminUser = 'admin-hci'
+param localAdminUser = 'Administrator'
 param servicePrincipalId = '<servicePrincipalId>'
 param servicePrincipalSecret = '<servicePrincipalSecret>'
 param tags = {
@@ -926,6 +778,7 @@ param tags = {
 | Parameter | Type | Description |
 | :-- | :-- | :-- |
 | [`deploymentSettings`](#parameter-deploymentsettings) | object | The deployment settings of the cluster. |
+| [`hciResourceProviderObjectId`](#parameter-hciresourceproviderobjectid) | securestring | The service principal object ID of the Azure Stack HCI Resource Provider in this tenant. Can be fetched via `Get-AzADServicePrincipal -ApplicationId 1412d89f-b8a8-4111-b4fd-e82905cbd85d` after the 'Microsoft.AzureStackHCI' provider was registered in the subscription. |
 | [`name`](#parameter-name) | string | The name of the Azure Stack HCI cluster - this must be a valid Active Directory computer name and will be the name of your cluster in Azure. |
 
 **Conditional parameters**
@@ -936,8 +789,8 @@ param tags = {
 | [`deploymentUserPassword`](#parameter-deploymentuserpassword) | securestring | The password of the deployment user. Required if useSharedKeyVault is true. |
 | [`localAdminPassword`](#parameter-localadminpassword) | securestring | The password of the local admin user. Required if useSharedKeyVault is true. |
 | [`localAdminUser`](#parameter-localadminuser) | string | The name of the local admin user. Required if useSharedKeyVault is true. |
-| [`servicePrincipalId`](#parameter-serviceprincipalid) | string | The service principal ID for ARB. Required if useSharedKeyVault is true. |
-| [`servicePrincipalSecret`](#parameter-serviceprincipalsecret) | securestring | The service principal secret for ARB. Required if useSharedKeyVault is true. |
+| [`servicePrincipalId`](#parameter-serviceprincipalid) | string | The service principal ID for ARB. Required if useSharedKeyVault is true and need ARB service principal id. |
+| [`servicePrincipalSecret`](#parameter-serviceprincipalsecret) | securestring | The service principal secret for ARB. Required if useSharedKeyVault is true and need ARB service principal id. |
 
 **Optional parameters**
 
@@ -1491,6 +1344,13 @@ Limits the applications and the code that you can run on your Azure Stack HCI cl
 - Required: No
 - Type: bool
 
+### Parameter: `hciResourceProviderObjectId`
+
+The service principal object ID of the Azure Stack HCI Resource Provider in this tenant. Can be fetched via `Get-AzADServicePrincipal -ApplicationId 1412d89f-b8a8-4111-b4fd-e82905cbd85d` after the 'Microsoft.AzureStackHCI' provider was registered in the subscription.
+
+- Required: Yes
+- Type: securestring
+
 ### Parameter: `name`
 
 The name of the Azure Stack HCI cluster - this must be a valid Active Directory computer name and will be the name of your cluster in Azure.
@@ -1528,14 +1388,14 @@ The name of the local admin user. Required if useSharedKeyVault is true.
 
 ### Parameter: `servicePrincipalId`
 
-The service principal ID for ARB. Required if useSharedKeyVault is true.
+The service principal ID for ARB. Required if useSharedKeyVault is true and need ARB service principal id.
 
 - Required: No
 - Type: string
 
 ### Parameter: `servicePrincipalSecret`
 
-The service principal secret for ARB. Required if useSharedKeyVault is true.
+The service principal secret for ARB. Required if useSharedKeyVault is true and need ARB service principal id.
 
 - Required: No
 - Type: securestring
@@ -1794,6 +1654,38 @@ Tags of the witness storage key.
 | `resourceGroupName` | string | The resource group of the cluster. |
 | `resourceId` | string | The ID of the cluster. |
 | `systemAssignedMIPrincipalId` | string | The managed identity of the cluster. |
+| `vSwitchName` | string | The name of the vSwitch. |
+
+## Notes
+
+This module requires prerequisites, that can't be done via ARM/Bicep directly.
+
+### Required Azure Role Assignments
+
+To successfully deploy and manage Azure Stack HCI clusters, ensure the following service principals have the appropriate role assignments at the subscription level:
+
+#### 1. Service Principal Permissions
+
+The service principal referenced as `CI-arbDeploymentAppId` in the Key Vault must have the following roles assigned:
+
+- **Contributor** - For resource operations
+- **Reader** - For read access to resources
+- **Azure Connected Machine Onboarding** - For onboarding Azure Arc-enabled servers
+- **Azure Connected Machine Resource Administrator** - For managing Arc-enabled server resources
+- **Key Vault Secrets Officer** - For managing Key Vault secrets
+- **User Access Administrator** - For managing role assignments
+
+#### 2. Microsoft.AzureStackHCI Resource Provider Permissions
+
+The Microsoft.AzureStackHCI Resource Provider must have the following role assigned:
+
+- **Azure Connected Machine Resource Manager** - Required for extension reconciliation and hybrid compute operations
+
+To find the correct service principal for role assignment:
+
+1. Use the client ID `1412d89f-b8a8-4111-b4fd-e82905cbd85d` to locate the Microsoft.AzureStackHCI service principal
+
+2. Use the Object ID of this service principal for role assignment
 
 ## Data Collection
 

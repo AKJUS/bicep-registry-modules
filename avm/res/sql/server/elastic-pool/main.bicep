@@ -13,8 +13,12 @@ param tags object?
 @description('Optional. Location for all resources.')
 param location string = resourceGroup().location
 
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. The lock settings of the elastic pool.')
+param lock lockType?
+
 @description('Optional. The elastic pool SKU.')
-param sku elasticPoolSkuType = {
+param sku skuType = {
   capacity: 2
   name: 'GP_Gen5'
   tier: 'GeneralPurpose'
@@ -23,8 +27,14 @@ param sku elasticPoolSkuType = {
 @description('Optional. Time in minutes after which elastic pool is automatically paused. A value of -1 means that automatic pause is disabled.')
 param autoPauseDelay int = -1
 
-@description('Optional. Specifies the availability zone the pool\'s primary replica is pinned to.')
-param availabilityZone '1' | '2' | '3' | 'NoPreference' = 'NoPreference'
+@description('Required. If set to 1, 2 or 3, the availability zone is hardcoded to that value. If set to -1, no zone is defined. Note that the availability zone numbers here are the logical availability zone in your Azure subscription. Different subscriptions might have a different mapping of the physical zone and logical zone. To understand more, please refer to [Physical and logical availability zones](https://learn.microsoft.com/en-us/azure/reliability/availability-zones-overview?tabs=azure-cli#physical-and-logical-availability-zones).')
+@allowed([
+  -1
+  1
+  2
+  3
+])
+param availabilityZone int
 
 @description('Optional. The number of secondary replicas associated with the elastic pool that are used to provide high availability. Applicable only to Hyperscale elastic pools.')
 param highAvailabilityReplicaCount int?
@@ -46,7 +56,7 @@ param maxSizeBytes int = 34359738368
 param minCapacity int?
 
 @description('Optional. The per database settings for the elastic pool.')
-param perDatabaseSettings elasticPoolPerDatabaseSettingsType = {
+param perDatabaseSettings perDatabaseSettingsType = {
   autoPauseDelay: -1
   maxCapacity: '2'
   minCapacity: '0'
@@ -58,11 +68,11 @@ param preferredEnclaveType 'Default' | 'VBS' = 'Default'
 @description('Optional. Whether or not this elastic pool is zone redundant, which means the replicas of this elastic pool will be spread across multiple availability zones.')
 param zoneRedundant bool = true
 
-resource server 'Microsoft.Sql/servers@2023-08-01-preview' existing = {
+resource server 'Microsoft.Sql/servers@2023-08-01' existing = {
   name: serverName
 }
 
-resource elasticPool 'Microsoft.Sql/servers/elasticPools@2023-08-01-preview' = {
+resource elasticPool 'Microsoft.Sql/servers/elasticPools@2023-08-01' = {
   name: name
   location: location
   parent: server
@@ -70,7 +80,7 @@ resource elasticPool 'Microsoft.Sql/servers/elasticPools@2023-08-01-preview' = {
   sku: sku
   properties: {
     autoPauseDelay: autoPauseDelay
-    availabilityZone: availabilityZone
+    availabilityZone: availabilityZone != -1 ? string(availabilityZone) : 'NoPreference'
     highAvailabilityReplicaCount: highAvailabilityReplicaCount
     licenseType: licenseType
     maintenanceConfigurationId: maintenanceConfigurationId
@@ -87,6 +97,17 @@ resource elasticPool 'Microsoft.Sql/servers/elasticPools@2023-08-01-preview' = {
     preferredEnclaveType: preferredEnclaveType
     zoneRedundant: zoneRedundant
   }
+}
+
+resource elasticPool_lock 'Microsoft.Authorization/locks@2020-05-01' = if (!empty(lock ?? {}) && lock.?kind != 'None') {
+  name: lock.?name ?? 'lock-${name}'
+  properties: {
+    level: lock.?kind ?? ''
+    notes: lock.?kind == 'CanNotDelete'
+      ? 'Cannot delete resource or child resources.'
+      : 'Cannot delete or modify the resource or child resources.'
+  }
+  scope: elasticPool
 }
 
 @description('The name of the deployed Elastic Pool.')
@@ -107,7 +128,7 @@ output location string = elasticPool.location
 
 @export()
 @description('The per database settings for the elastic pool.')
-type elasticPoolPerDatabaseSettingsType = {
+type perDatabaseSettingsType = {
   @description('Optional. Auto Pause Delay for per database within pool.')
   autoPauseDelay: int?
 
@@ -121,7 +142,7 @@ type elasticPoolPerDatabaseSettingsType = {
 
 @export()
 @description('The elastic pool SKU.')
-type elasticPoolSkuType = {
+type skuType = {
   @description('Optional. The capacity of the particular SKU.')
   capacity: int?
 

@@ -5,14 +5,14 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.33.93.31351",
-      "templateHash": "17349112224241666638"
+      "version": "0.36.1.42791",
+      "templateHash": "8266622523187177483"
     },
     "name": "SQL Server Elastic Pool",
     "description": "This module deploys an Azure SQL Server Elastic Pool."
   },
   "definitions": {
-    "elasticPoolPerDatabaseSettingsType": {
+    "perDatabaseSettingsType": {
       "type": "object",
       "properties": {
         "autoPauseDelay": {
@@ -40,7 +40,7 @@
         "description": "The per database settings for the elastic pool."
       }
     },
-    "elasticPoolSkuType": {
+    "skuType": {
       "type": "object",
       "properties": {
         "capacity": {
@@ -96,6 +96,36 @@
         "__bicep_export!": true,
         "description": "The elastic pool SKU."
       }
+    },
+    "lockType": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "nullable": true,
+          "metadata": {
+            "description": "Optional. Specify the name of lock."
+          }
+        },
+        "kind": {
+          "type": "string",
+          "allowedValues": [
+            "CanNotDelete",
+            "None",
+            "ReadOnly"
+          ],
+          "nullable": true,
+          "metadata": {
+            "description": "Optional. Specify the type of lock."
+          }
+        }
+      },
+      "metadata": {
+        "description": "An AVM-aligned type for a lock.",
+        "__bicep_imported_from!": {
+          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+        }
+      }
     }
   },
   "parameters": {
@@ -125,8 +155,15 @@
         "description": "Optional. Location for all resources."
       }
     },
+    "lock": {
+      "$ref": "#/definitions/lockType",
+      "nullable": true,
+      "metadata": {
+        "description": "Optional. The lock settings of the elastic pool."
+      }
+    },
     "sku": {
-      "$ref": "#/definitions/elasticPoolSkuType",
+      "$ref": "#/definitions/skuType",
       "defaultValue": {
         "capacity": 2,
         "name": "GP_Gen5",
@@ -144,16 +181,15 @@
       }
     },
     "availabilityZone": {
-      "type": "string",
+      "type": "int",
       "allowedValues": [
-        "1",
-        "2",
-        "3",
-        "NoPreference"
+        -1,
+        1,
+        2,
+        3
       ],
-      "defaultValue": "NoPreference",
       "metadata": {
-        "description": "Optional. Specifies the availability zone the pool's primary replica is pinned to."
+        "description": "Required. If set to 1, 2 or 3, the availability zone is hardcoded to that value. If set to -1, no zone is defined. Note that the availability zone numbers here are the logical availability zone in your Azure subscription. Different subscriptions might have a different mapping of the physical zone and logical zone. To understand more, please refer to [Physical and logical availability zones](https://learn.microsoft.com/en-us/azure/reliability/availability-zones-overview?tabs=azure-cli#physical-and-logical-availability-zones)."
       }
     },
     "highAvailabilityReplicaCount": {
@@ -196,7 +232,7 @@
       }
     },
     "perDatabaseSettings": {
-      "$ref": "#/definitions/elasticPoolPerDatabaseSettingsType",
+      "$ref": "#/definitions/perDatabaseSettingsType",
       "defaultValue": {
         "autoPauseDelay": -1,
         "maxCapacity": "2",
@@ -229,19 +265,19 @@
     "server": {
       "existing": true,
       "type": "Microsoft.Sql/servers",
-      "apiVersion": "2023-08-01-preview",
+      "apiVersion": "2023-08-01",
       "name": "[parameters('serverName')]"
     },
     "elasticPool": {
       "type": "Microsoft.Sql/servers/elasticPools",
-      "apiVersion": "2023-08-01-preview",
+      "apiVersion": "2023-08-01",
       "name": "[format('{0}/{1}', parameters('serverName'), parameters('name'))]",
       "location": "[parameters('location')]",
       "tags": "[parameters('tags')]",
       "sku": "[parameters('sku')]",
       "properties": {
         "autoPauseDelay": "[parameters('autoPauseDelay')]",
-        "availabilityZone": "[parameters('availabilityZone')]",
+        "availabilityZone": "[if(not(equals(parameters('availabilityZone'), -1)), string(parameters('availabilityZone')), 'NoPreference')]",
         "highAvailabilityReplicaCount": "[parameters('highAvailabilityReplicaCount')]",
         "licenseType": "[parameters('licenseType')]",
         "maintenanceConfigurationId": "[parameters('maintenanceConfigurationId')]",
@@ -251,6 +287,20 @@
         "preferredEnclaveType": "[parameters('preferredEnclaveType')]",
         "zoneRedundant": "[parameters('zoneRedundant')]"
       }
+    },
+    "elasticPool_lock": {
+      "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
+      "type": "Microsoft.Authorization/locks",
+      "apiVersion": "2020-05-01",
+      "scope": "[format('Microsoft.Sql/servers/{0}/elasticPools/{1}', parameters('serverName'), parameters('name'))]",
+      "name": "[coalesce(tryGet(parameters('lock'), 'name'), format('lock-{0}', parameters('name')))]",
+      "properties": {
+        "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
+        "notes": "[if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.')]"
+      },
+      "dependsOn": [
+        "elasticPool"
+      ]
     }
   },
   "outputs": {
@@ -280,7 +330,7 @@
       "metadata": {
         "description": "The location the resource was deployed into."
       },
-      "value": "[reference('elasticPool', '2023-08-01-preview', 'full').location]"
+      "value": "[reference('elasticPool', '2023-08-01', 'full').location]"
     }
   }
 }
