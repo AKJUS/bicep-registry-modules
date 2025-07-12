@@ -8,6 +8,7 @@ This module deploys a Virtual Machine Scale Set.
 - [Usage examples](#Usage-examples)
 - [Parameters](#Parameters)
 - [Outputs](#Outputs)
+- [Cross-referenced modules](#Cross-referenced-modules)
 - [Data Collection](#Data-Collection)
 
 ## Resource Types
@@ -522,7 +523,7 @@ module virtualMachineScaleSet 'br/public:avm/res/compute/virtual-machine-scale-s
     skuName: 'Standard_B12ms'
     // Non-required parameters
     availabilityZones: [
-      '2'
+      2
     ]
     bootDiagnosticEnabled: true
     bootDiagnosticStorageAccountName: '<bootDiagnosticStorageAccountName>'
@@ -713,7 +714,7 @@ module virtualMachineScaleSet 'br/public:avm/res/compute/virtual-machine-scale-s
     // Non-required parameters
     "availabilityZones": {
       "value": [
-        "2"
+        2
       ]
     },
     "bootDiagnosticEnabled": {
@@ -930,7 +931,7 @@ param osType = 'Linux'
 param skuName = 'Standard_B12ms'
 // Non-required parameters
 param availabilityZones = [
-  '2'
+  2
 ]
 param bootDiagnosticEnabled = true
 param bootDiagnosticStorageAccountName = '<bootDiagnosticStorageAccountName>'
@@ -2933,6 +2934,14 @@ The virtual machine scale set zones. NOTE: Availability zones can only be set wh
     3
   ]
   ```
+- Allowed:
+  ```Bicep
+  [
+    1
+    2
+    3
+  ]
+  ```
 
 ### Parameter: `bootDiagnosticEnabled`
 
@@ -3375,7 +3384,7 @@ The managed identity definition for this resource.
 | Parameter | Type | Description |
 | :-- | :-- | :-- |
 | [`systemAssigned`](#parameter-managedidentitiessystemassigned) | bool | Enables system assigned managed identity on the resource. |
-| [`userAssignedResourceIds`](#parameter-managedidentitiesuserassignedresourceids) | array | The resource ID(s) to assign to the resource. |
+| [`userAssignedResourceIds`](#parameter-managedidentitiesuserassignedresourceids) | array | The resource ID(s) to assign to the resource. Required if a user assigned identity is used for encryption. |
 
 ### Parameter: `managedIdentities.systemAssigned`
 
@@ -3386,7 +3395,7 @@ Enables system assigned managed identity on the resource.
 
 ### Parameter: `managedIdentities.userAssignedResourceIds`
 
-The resource ID(s) to assign to the resource.
+The resource ID(s) to assign to the resource. Required if a user assigned identity is used for encryption.
 
 - Required: No
 - Type: array
@@ -3866,6 +3875,15 @@ Do not provide a value! This date value is used to generate a registration token
 | `resourceGroupName` | string | The resource group of the virtual machine scale set. |
 | `resourceId` | string | The resource ID of the virtual machine scale set. |
 | `systemAssignedMIPrincipalId` | string | The principal ID of the system assigned identity. |
+
+## Cross-referenced modules
+
+This section gives you an overview of all local-referenced module files (i.e., other modules that are referenced in this module) and all remote-referenced files (i.e., Bicep modules that are referenced from a Bicep Registry or Template Specs).
+
+| Reference | Type |
+| :-- | :-- |
+| `br/public:avm/utl/types/avm-common-types:0.4.1` | Remote reference |
+| `br/public:avm/utl/types/avm-common-types:0.5.1` | Remote reference |
 
 ## Data Collection
 
