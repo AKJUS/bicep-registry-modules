@@ -41,6 +41,9 @@ This example will generate the moduleIndex.json file for the AVM modules and sav
 The function requires Azure PowerShell Storage Module (Az.Storage) to be installed and the user to be logged in to Azure.
 #>
 
+# Dot-source the OIDC retry helper (which transitively dot-sources Connect-AzAccountWithGitHubOidc).
+. (Join-Path $PSScriptRoot '..' 'sharedScripts' 'Invoke-AzStorageOperationWithOidcRetry.ps1')
+
 function Invoke-AvmJsonModuleIndexGeneration {
 
     [CmdletBinding()]
@@ -188,9 +191,20 @@ function Invoke-AvmJsonModuleIndexGeneration {
 
             Write-Verbose "Attempting to get last version of the moduleIndex.json from the Storage Account: $storageAccountName, Container: $storageAccountContainer, Blob: $storageBlobName and save to file: $lastModuleIndexJsonFilePath ..." -Verbose
 
-            $storageContext = New-AzStorageContext -StorageAccountName $storageAccountName -UseConnectedAccount
-
-            Get-AzStorageBlobContent -Blob $storageBlobName -Container $storageAccountContainer -Context $storageContext -Destination $lastModuleIndexJsonFilePath -Force | Out-Null
+            # The GitHub OIDC JWT used by ClientAssertionCredential is short-lived
+            # (~10-15 min). The module enumeration loop above can run longer than
+            # that, causing -UseConnectedAccount to fail with
+            # 'ClientAssertionCredential authentication failed'. The retry helper
+            # mints a fresh JWT and re-runs Connect-AzAccount on auth failures.
+            Invoke-AzStorageOperationWithOidcRetry -ScriptBlock {
+                $storageContext = New-AzStorageContext -StorageAccountName $storageAccountName -UseConnectedAccount -ErrorAction Stop
+                Get-AzStorageBlobContent -Blob        $storageBlobName `
+                                         -Container   $storageAccountContainer `
+                                         -Context     $storageContext `
+                                         -Destination $lastModuleIndexJsonFilePath `
+                                         -Force `
+                                         -ErrorAction Stop | Out-Null
+            }
         } catch {
             Write-Error "Unable to retrieve moduleIndex.json file from the Storage Account: $storageAccountName, Container: $storageAccountContainer, Blob: $storageBlobName. Error: $($_.Exception.Message)" -ErrorAction 'Stop'
         }
